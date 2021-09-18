@@ -237,6 +237,7 @@ QString AddEditAutoProfileDialog::getOriginalWindowClass() const { return origin
 
 QString AddEditAutoProfileDialog::getOriginalWindowName() const { return originalWindowName; }
 
+#ifdef Q_OS_UNIX
 /**
  * @brief Display a simple message box and attempt to capture a window using the mouse
  */
@@ -327,6 +328,7 @@ void AddEditAutoProfileDialog::checkForGrabbedWindow(UnixCaptureWindowUtility *u
 
 #endif
 }
+#endif
 
 void AddEditAutoProfileDialog::windowPropAssignment(CapturedWindowInfoDialog *dialog)
 {
