@@ -23,10 +23,20 @@
 #include <QPushButton>
 #include <QWidget>
 
-#include "x11extras.h"
+#ifdef Q_OS_WIN
+    #include "winextras.h"
+#else
+    #include "x11extras.h"
+#endif
 
-CapturedWindowInfoDialog::CapturedWindowInfoDialog(long window, QWidget *parent)
-    : QDialog(parent)
+#ifdef Q_OS_WIN
+CapturedWindowInfoDialog::CapturedWindowInfoDialog(QWidget *parent)
+    :
+#else
+CapturedWindowInfoDialog::CapturedWindowInfoDialog(unsigned long window, QWidget *parent)
+    :
+#endif
+    QDialog(parent)
     , ui(new Ui::CapturedWindowInfoDialog)
 {
     ui->setupUi(this);
@@ -34,11 +44,19 @@ CapturedWindowInfoDialog::CapturedWindowInfoDialog(long window, QWidget *parent)
 
     selectedMatch = WindowNone;
 
+#ifdef Q_OS_UNIX
     X11Extras *info = X11Extras::getInstance();
     ui->winPathChoiceComboBox->setVisible(false);
+#endif
 
     bool setRadioDefault = false;
     fullWinPath = false;
+
+#ifdef Q_OS_WIN
+    ui->winClassCheckBox->setVisible(false);
+    ui->winClassLabel->setVisible(false);
+    ui->winClassHeadLabel->setVisible(false);
+#else
 
     winClass = info->getWindowClass(static_cast<Window>(window));
     ui->winClassLabel->setText(winClass);
@@ -54,8 +72,13 @@ CapturedWindowInfoDialog::CapturedWindowInfoDialog(long window, QWidget *parent)
     }
 
     ui->winPathChoiceComboBox->setVisible(false);
+#endif
 
-    winName = info->getWindowTitle(static_cast<Window>(window));
+#ifdef Q_OS_WIN
+    winName = WinExtras::getCurrentWindowText();
+#else
+    winName = info->getWindowTitle(window);
+#endif
 
     ui->winTitleLabel->setText(winName);
 
@@ -70,7 +93,22 @@ CapturedWindowInfoDialog::CapturedWindowInfoDialog(long window, QWidget *parent)
     }
 
     ui->winPathLabel->clear();
+#ifdef Q_OS_WIN
+    winPath = WinExtras::getForegroundWindowExePath();
+    ui->winPathLabel->setText(winPath);
 
+    if (winPath.isEmpty())
+    {
+        ui->winPathCheckBox->setEnabled(false);
+        ui->winPathCheckBox->setChecked(false);
+    } else
+    {
+        ui->winPathCheckBox->setChecked(true);
+        ui->winTitleCheckBox->setChecked(false);
+        setRadioDefault = true;
+    }
+
+#elif defined(Q_OS_LINUX)
     int pid = info->getApplicationPid(static_cast<Window>(window));
 
     if (pid > 0)
@@ -95,6 +133,7 @@ CapturedWindowInfoDialog::CapturedWindowInfoDialog(long window, QWidget *parent)
         ui->winPathCheckBox->setEnabled(false);
         ui->winPathCheckBox->setChecked(false);
     }
+#endif
 
     if (winClass.isEmpty() && winName.isEmpty() && winPath.isEmpty())
     {
